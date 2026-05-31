@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gastos do Dia</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     --bg: #0f0f11; --surface: #1a1a1f; --surface2: #22222a;
@@ -29,8 +30,8 @@
   .chip-days.warn { background: rgba(251,191,36,0.12); color: var(--amber); }
   .chip-days.bad  { background: rgba(248,113,113,0.12); color: var(--red); }
 
-  .tabs { display: flex; gap: 6px; padding: 12px 20px 8px; flex-shrink: 0; }
-  .tab { flex: 1; padding: 10px 0; font-size: 13px; font-weight: 500; border-radius: var(--r-sm); border: none; cursor: pointer; transition: all 0.2s; background: var(--surface); color: var(--muted); }
+  .tabs { display: flex; gap: 5px; padding: 10px 16px 8px; flex-shrink: 0; }
+  .tab { flex: 1; padding: 9px 0; font-size: 12px; font-weight: 500; border-radius: var(--r-sm); border: none; cursor: pointer; transition: all 0.2s; background: var(--surface); color: var(--muted); }
   .tab.active { background: var(--accent); color: #fff; }
 
   .content { flex: 1; overflow-y: auto; padding: 0 16px 24px; -webkit-overflow-scrolling: touch; }
@@ -105,6 +106,36 @@
   .entry-del { background: none; border: none; color: var(--muted); font-size: 20px; padding: 4px; cursor: pointer; margin-left: 2px; }
   .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
   .btn-clear { width: 100%; padding: 13px; font-size: 14px; font-weight: 500; background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); border-radius: var(--r-sm); cursor: pointer; margin-top: 6px; }
+  .btn-export { width: 100%; padding: 13px; font-size: 14px; font-weight: 500; background: rgba(62,207,142,0.1); color: var(--green); border: 1px solid rgba(62,207,142,0.2); border-radius: var(--r-sm); cursor: pointer; margin-top: 6px; }
+
+  /* FIXOS */
+  .fixos-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 8px; }
+  .fixos-title { font-size: 13px; font-weight: 600; }
+  .fixos-summary { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+  .fixos-progress { background: var(--surface); border-radius: var(--r); padding: 14px; margin-bottom: 12px; }
+  .fixos-prog-bar { height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
+  .fixos-prog-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.4s; }
+  .fixos-prog-info { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .fixo-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border-radius: var(--r-sm); padding: 13px 12px; margin-bottom: 8px; transition: opacity 0.2s; }
+  .fixo-item.paid { opacity: 0.5; }
+  .fixo-check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); background: transparent; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .fixo-check.checked { background: var(--green); border-color: var(--green); }
+  .fixo-check.checked::after { content: '✓'; color: #000; font-size: 13px; font-weight: 700; }
+  .fixo-info { flex: 1; min-width: 0; }
+  .fixo-name { font-size: 14px; font-weight: 500; }
+  .fixo-name.paid-text { text-decoration: line-through; color: var(--muted); }
+  .fixo-val { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); }
+  .fixo-del { background: none; border: none; color: var(--muted); font-size: 18px; padding: 4px; cursor: pointer; }
+
+  .fixo-add-form { background: var(--surface); border-radius: var(--r); padding: 14px; margin-bottom: 10px; }
+  .fixo-form-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .fixo-form-row { display: flex; gap: 8px; align-items: center; }
+  .fixo-name-input { flex: 1; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; font-size: 14px; color: var(--text); outline: none; font-family: 'DM Sans', sans-serif; }
+  .fixo-name-input:focus { border-color: var(--accent); }
+  .fixo-val-input { width: 100px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; font-size: 14px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; text-align: right; }
+  .fixo-val-input:focus { border-color: var(--accent); }
+  .btn-add-fixo { padding: 10px 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--r-sm); font-size: 18px; cursor: pointer; flex-shrink: 0; font-weight: 600; }
+  .btn-reset-fixos { width: 100%; padding: 13px; font-size: 14px; font-weight: 500; background: rgba(124,110,247,0.1); color: var(--accent); border: 1px solid rgba(124,110,247,0.2); border-radius: var(--r-sm); cursor: pointer; margin-top: 6px; }
 
   /* MODAL */
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: flex-end; z-index: 100; }
@@ -136,9 +167,10 @@
   </div>
 
   <div class="tabs">
-    <button class="tab active" id="tab-add" onclick="showTab('add')">＋ Adicionar</button>
+    <button class="tab active" id="tab-add" onclick="showTab('add')">＋ Add</button>
     <button class="tab" id="tab-dash" onclick="showTab('dash')">📊 Painel</button>
     <button class="tab" id="tab-hist" onclick="showTab('hist')">🗂 Histórico</button>
+    <button class="tab" id="tab-fixos" onclick="showTab('fixos')">📋 Fixos</button>
   </div>
 
   <div class="content">
@@ -161,7 +193,6 @@
 
     <!-- DASH -->
     <div class="view" id="view-dash">
-
       <div class="countdown" id="countdown-block">
         <div class="cd-number" id="cd-num">—</div>
         <div class="cd-info">
@@ -212,7 +243,36 @@
     <!-- HIST -->
     <div class="view" id="view-hist">
       <div id="hist-content"></div>
+      <button class="btn-export" onclick="exportExcel()">📥 Exportar para Excel</button>
       <button class="btn-clear" onclick="clearAll()">🗑 Limpar tudo</button>
+    </div>
+
+    <!-- FIXOS -->
+    <div class="view" id="view-fixos">
+      <div class="fixo-add-form">
+        <div class="fixo-form-title">Adicionar gasto fixo</div>
+        <div class="fixo-form-row">
+          <input class="fixo-name-input" type="text" id="fixo-nome" placeholder="Ex: Aluguel, Netflix…" maxlength="50">
+          <input class="fixo-val-input" type="number" id="fixo-valor" placeholder="0,00" inputmode="decimal" min="0" step="0.01">
+          <button class="btn-add-fixo" onclick="addFixo()">＋</button>
+        </div>
+      </div>
+
+      <div class="fixos-progress" id="fixos-progress-block">
+        <div class="fixos-header">
+          <span class="fixos-title">Progresso do mês</span>
+          <span class="fixos-summary" id="fixos-summary">0 / 0 pagos</span>
+        </div>
+        <div class="fixos-prog-bar"><div class="fixos-prog-fill" id="fixos-prog-fill" style="width:0%"></div></div>
+        <div class="fixos-prog-info">
+          <span id="fixos-paid-val">Pago: R$ 0,00</span>
+          <span id="fixos-pending-val">Pendente: R$ 0,00</span>
+        </div>
+      </div>
+
+      <div id="fixos-list"></div>
+
+      <button class="btn-reset-fixos" onclick="resetFixos()">🔄 Reiniciar checklist (novo mês)</button>
     </div>
 
   </div>
@@ -249,62 +309,83 @@ const CATS=[
 ];
 
 let entries=[], budget=1320, payday=30, selCat='food';
+let fixos=[];
 
 /* ── STORAGE ── */
 function save(){ try{localStorage.setItem('gd3_entries',JSON.stringify(entries));}catch(e){} }
+function saveFixos(){ try{localStorage.setItem('gd3_fixos',JSON.stringify(fixos));}catch(e){} }
 function load(){
   try{const e=localStorage.getItem('gd3_entries'); if(e) entries=JSON.parse(e);}catch(e){}
   try{const b=localStorage.getItem('gd3_budget');  if(b) budget=parseFloat(b)||1320;}catch(e){}
   try{const p=localStorage.getItem('gd3_payday');  if(p) payday=parseInt(p)||30;}catch(e){}
+  try{const f=localStorage.getItem('gd3_fixos');   if(f) fixos=JSON.parse(f);}catch(e){}
 }
 
 /* ── HELPERS ── */
 function fmt(n){ return 'R$ '+Math.abs(n).toFixed(2).replace('.',','); }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
 
-// Retorna a data do próximo salário a partir de hoje
-function nextPayday(){
+// Retorna o horário atual no fuso de Brasília (UTC-3)
+function nowBrasilia(){
   const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utc + (-3 * 3600000));
+}
+
+function todayStr(){
+  const d = nowBrasilia();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+// Retorna a data do próximo salário a partir de hoje (Brasília)
+function nextPayday(){
+  const now = nowBrasilia();
   const y = now.getFullYear(), m = now.getMonth();
-  // dia máximo do mês corrente
   const maxThisMonth = new Date(y, m+1, 0).getDate();
   const dayThisMonth = Math.min(payday, maxThisMonth);
   const candidate = new Date(y, m, dayThisMonth);
-  if(candidate > now){
+  candidate.setHours(0,0,0,0);
+  const today = new Date(y, m, now.getDate());
+  today.setHours(0,0,0,0);
+  if(candidate > today){
     return candidate;
   } else {
-    // próximo mês
     const maxNext = new Date(y, m+2, 0).getDate();
     const dayNext = Math.min(payday, maxNext);
     return new Date(y, m+1, dayNext);
   }
 }
 
-// Dias restantes até o próximo salário (incluindo hoje)
+// Dias restantes até o próximo salário
 function daysUntilPayday(){
-  const now = new Date(); now.setHours(0,0,0,0);
-  const pd = nextPayday(); pd.setHours(0,0,0,0);
-  return Math.round((pd - now) / 86400000);
+  const now = nowBrasilia();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  today.setHours(0,0,0,0);
+  const pd = nextPayday();
+  return Math.round((pd - today) / 86400000);
 }
 
 // Início do ciclo atual (último salário)
 function cycleStart(){
-  const now = new Date();
+  const now = nowBrasilia();
   const y = now.getFullYear(), m = now.getMonth();
   const maxThisMonth = new Date(y, m+1, 0).getDate();
   const dayThisMonth = Math.min(payday, maxThisMonth);
   const candidate = new Date(y, m, dayThisMonth);
-  if(candidate <= now){
-    return candidate; // salário foi esse mês
+  candidate.setHours(0,0,0,0);
+  const today = new Date(y, m, now.getDate());
+  today.setHours(0,0,0,0);
+  if(candidate <= today){
+    return candidate;
   } else {
-    // salário foi mês passado
     const maxPrev = new Date(y, m, 0).getDate();
     const dayPrev = Math.min(payday, maxPrev);
     return new Date(y, m-1, dayPrev);
   }
 }
 
-// Total gasto no ciclo atual
 function totalGasto(){
   const start = cycleStart();
   start.setHours(0,0,0,0);
@@ -321,7 +402,7 @@ function gastoHoje(){
 
 /* ── RENDER ── */
 function renderHeader(){
-  const d = new Date();
+  const d = nowBrasilia();
   document.getElementById('header-date').textContent =
     d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
 
@@ -337,7 +418,6 @@ function renderDash(){
   const saldo = budget - total;
   const days  = daysUntilPayday();
 
-  // Disponível hoje = saldo dividido pelos dias restantes, menos o que já gastou hoje
   const diarioBruto = days > 0 ? saldo / days : 0;
   const dispHoje = diarioBruto - hoje;
 
@@ -362,7 +442,6 @@ function renderDash(){
     `${fmt(diarioBruto)}/dia · gasto: ${fmt(hoje)}`;
 
   document.getElementById('m-hoje').textContent = fmt(hoje);
-
   document.getElementById('m-total').textContent = fmt(total);
 
   const es = document.getElementById('m-saldo');
@@ -423,6 +502,35 @@ function renderHist(){
   }).join('');
 }
 
+function renderFixos(){
+  const total = fixos.reduce((a,f)=>a+f.value,0);
+  const paidTotal = fixos.filter(f=>f.paid).reduce((a,f)=>a+f.value,0);
+  const pendingTotal = total - paidTotal;
+  const paidCount = fixos.filter(f=>f.paid).length;
+  const pct = total > 0 ? Math.round(paidTotal/total*100) : 0;
+
+  document.getElementById('fixos-summary').textContent = `${paidCount} / ${fixos.length} pagos`;
+  document.getElementById('fixos-prog-fill').style.width = pct+'%';
+  document.getElementById('fixos-paid-val').textContent = 'Pago: '+fmt(paidTotal);
+  document.getElementById('fixos-pending-val').textContent = 'Pendente: '+fmt(pendingTotal);
+
+  const fl = document.getElementById('fixos-list');
+  if(!fixos.length){
+    fl.innerHTML='<div class="empty"><div style="font-size:36px;margin-bottom:10px;">📋</div><div style="font-size:14px;">Nenhum gasto fixo cadastrado</div></div>';
+    return;
+  }
+  fl.innerHTML = fixos.map(f=>`
+    <div class="fixo-item${f.paid?' paid':''}">
+      <div class="fixo-check${f.paid?' checked':''}" onclick="toggleFixo('${f.id}')"></div>
+      <div class="fixo-info">
+        <div class="fixo-name${f.paid?' paid-text':''}">${f.name}</div>
+        <div class="fixo-val">${fmt(f.value)}</div>
+      </div>
+      <button class="fixo-del" onclick="deleteFixo('${f.id}')">×</button>
+    </div>
+  `).join('');
+}
+
 function buildCatGrid(){
   document.getElementById('cats-grid').innerHTML=CATS.map(c=>`
     <button class="cat-btn${selCat===c.id?' sel':''}" onclick="selectCat('${c.id}')">
@@ -454,6 +562,92 @@ function clearAll(){
   entries=[]; save(); renderAll();
 }
 
+/* ── FIXOS ACTIONS ── */
+function addFixo(){
+  const name = document.getElementById('fixo-nome').value.trim();
+  const val  = parseFloat(document.getElementById('fixo-valor').value);
+  if(!name){ document.getElementById('fixo-nome').focus(); return; }
+  if(!val||val<=0){ document.getElementById('fixo-valor').focus(); return; }
+  fixos.push({id:Date.now().toString(), name, value:val, paid:false});
+  saveFixos();
+  document.getElementById('fixo-nome').value='';
+  document.getElementById('fixo-valor').value='';
+  renderFixos();
+}
+
+function toggleFixo(id){
+  const f = fixos.find(x=>x.id===id);
+  if(f) f.paid = !f.paid;
+  saveFixos(); renderFixos();
+}
+
+function deleteFixo(id){
+  fixos = fixos.filter(x=>x.id!==id);
+  saveFixos(); renderFixos();
+}
+
+function resetFixos(){
+  if(!confirm('Desmarcar todos os itens pagos para o novo mês?')) return;
+  fixos.forEach(f=>f.paid=false);
+  saveFixos(); renderFixos();
+}
+
+/* ── EXPORT EXCEL ── */
+function exportExcel(){
+  if(!entries.length){ alert('Nenhum gasto para exportar.'); return; }
+  const wb = XLSX.utils.book_new();
+
+  // Aba de gastos
+  const gastoRows = [['Data','Categoria','Descrição','Valor (R$)']];
+  [...entries].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+    const cat = CATS.find(c=>c.id===e.cat)||CATS[6];
+    const d = new Date(e.date+'T12:00:00');
+    gastoRows.push([
+      d.toLocaleDateString('pt-BR'),
+      cat.label,
+      e.desc||cat.label,
+      e.value
+    ]);
+  });
+  const wsGastos = XLSX.utils.aoa_to_sheet(gastoRows);
+  wsGastos['!cols'] = [{wch:14},{wch:16},{wch:30},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsGastos, 'Gastos');
+
+  // Aba de fixos
+  if(fixos.length){
+    const fixoRows = [['Nome','Valor (R$)','Status']];
+    fixos.forEach(f=>fixoRows.push([f.name, f.value, f.paid?'Pago':'Pendente']));
+    const wsFixos = XLSX.utils.aoa_to_sheet(fixoRows);
+    wsFixos['!cols'] = [{wch:24},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, wsFixos, 'Gastos Fixos');
+  }
+
+  // Aba de resumo
+  const total = totalGasto();
+  const saldo = budget - total;
+  const resumoRows = [
+    ['Resumo do Ciclo Atual',''],
+    ['Orçamento', budget],
+    ['Total gasto', total],
+    ['Saldo restante', saldo],
+    ['Dias até o salário', daysUntilPayday()],
+    [''],
+    ['Por Categoria',''],
+  ];
+  const bycat={}; CATS.forEach(c=>bycat[c.id]=0);
+  const start = cycleStart(); start.setHours(0,0,0,0);
+  entries.filter(e=>new Date(e.date+'T12:00:00')>=start)
+         .forEach(e=>{ if(bycat[e.cat]!==undefined) bycat[e.cat]+=e.value; });
+  CATS.forEach(c=>{ if(bycat[c.id]>0) resumoRows.push([c.label, bycat[c.id]]); });
+  const wsResumo = XLSX.utils.aoa_to_sheet(resumoRows);
+  wsResumo['!cols'] = [{wch:22},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+  const now = nowBrasilia();
+  const fname = `gastos_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+}
+
 /* ── CONFIG ── */
 function openConfig(){
   document.getElementById('f-budget').value=budget;
@@ -471,16 +665,17 @@ function saveConfig(){
 }
 
 /* ── UI ── */
-function showToast(){ const t=document.getElementById('toast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg||'✓ Gasto registrado!'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
 function showTab(t){
-  ['add','dash','hist'].forEach(x=>{
+  ['add','dash','hist','fixos'].forEach(x=>{
     document.getElementById('view-'+x).classList.toggle('active',x===t);
     document.getElementById('tab-'+x).classList.toggle('active',x===t);
   });
   if(t==='dash') renderDash();
   if(t==='hist') renderHist();
+  if(t==='fixos') renderFixos();
 }
-function renderAll(){ renderHeader(); buildCatGrid(); renderDash(); renderHist(); }
+function renderAll(){ renderHeader(); buildCatGrid(); renderDash(); renderHist(); renderFixos(); }
 
 load(); renderAll();
 </script>
